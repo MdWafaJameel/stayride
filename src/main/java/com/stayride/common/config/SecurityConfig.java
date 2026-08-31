@@ -45,12 +45,34 @@ public class SecurityConfig {
                                 "ADMIN"
                         )
 
+                        // Everyone authenticated can view hotels
                         .requestMatchers(
-                                "/api/hotels/**"
-                        ).hasAnyRole(
-                                "HOTEL_ADMIN",
-                                "ADMIN"
-                        )
+                                org.springframework.http.HttpMethod.GET, "/api/hotels", "/api/hotels/**" )
+                        .hasAnyRole( "CUSTOMER", "HOTEL_ADMIN", "ADMIN" )
+
+                        // ========================= // HOTELS - WRITE // ========================= // Only HOTEL_ADMIN and ADMIN can create hotels
+                                // Create hotel
+                                .requestMatchers(
+                                        org.springframework.http.HttpMethod.POST,
+                                        "/api/hotels"
+                                ).hasAnyRole(
+                                        "HOTEL_ADMIN",
+                                        "ADMIN"
+                                )
+
+                                // Update hotel
+                                .requestMatchers(
+                                        org.springframework.http.HttpMethod.PUT,
+                                        "/api/hotels/*"
+                                ).hasAnyRole(
+                                        "HOTEL_ADMIN",
+                                        "ADMIN"
+                                )
+
+
+                        // Only HOTEL_ADMIN and ADMIN can create rooms
+                        .requestMatchers( org.springframework.http.HttpMethod.POST, "/api/hotels/*/rooms"
+                        ).hasAnyRole( "HOTEL_ADMIN", "ADMIN" )
 
                         .anyRequest().authenticated()
                 )

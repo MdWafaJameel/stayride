@@ -2,10 +2,12 @@ package com.stayride.hotel.controller;
 
 import com.stayride.hotel.dto.HotelResponse;
 import com.stayride.hotel.dto.RoomResponse;
+import com.stayride.hotel.dto.UpdateHotelRequest;
 import com.stayride.hotel.entity.Hotel;
 import com.stayride.hotel.entity.Room;
 import com.stayride.hotel.service.HotelService;
 import com.stayride.hotel.service.RoomService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +43,16 @@ public class HotelController {
             @PathVariable Long hotelId) {
 
         return ResponseEntity.ok(hotelService.getHotel(hotelId));
+    }
+
+    @PutMapping("/{hotelId}")
+    public ResponseEntity<HotelResponse> updateHotel(
+            @PathVariable Long hotelId,
+            @Valid @RequestBody UpdateHotelRequest request) {
+
+        return ResponseEntity.ok(
+                hotelService.updateHotel(hotelId, request)
+        );
     }
 
     @PostMapping("/{hotelId}/rooms")
