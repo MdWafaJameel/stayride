@@ -7,26 +7,41 @@ StayRide is a Spring Boot backend for a hotel and room booking platform.
 StayRide is currently designed as a **modular monolith**.
 
 ``` text
-                         StayRide
-                    Modular Monolith
-                           |
-          +----------------+----------------+
-          |                |                |
-        User             Hotel           Booking
-        Module           Module           Module
-          |                |                |
-          +----------------+----------------+
-                           |
-                   Spring Security
-                           |
-                      JWT Authentication
-
-                 Future separate service
-                           |
-                    Ride Microservice
-                           |
-                    Driver / Ride
+Java 21
+   ↓
+Spring Boot
+   ↓
+Spring Security + JWT
+   ↓
+Modular Monolith
+   ↓
+PostgreSQL
+   ↓
+Redis Caching
+   ↓
+Kafka
+   ↓
+Transactional Outbox
+   ↓
+Docker + Docker Compose
 ```
+
+The main business modules are:
+
+``` text
+StayRide
+   |
+   +-- User Module
+   +-- Hotel Module
+   +-- Booking Module
+   |
+   +-- Common
+       +-- Security
+       +-- Exceptions
+       +-- Configuration
+```
+
+A separate **Ride microservice** is planned for a future phase.
 
 ## Current Features
 
@@ -150,26 +165,45 @@ booking.
 
 ## Technology Stack
 
--   Java
+-   Java 21
 -   Spring Boot
 -   Spring Security
 -   JWT
 -   Spring Data JPA
--   Maven
+-   PostgreSQL
+-   Redis
+-   Apache Kafka
+-   Transactional Outbox Pattern
 -   Docker
--   Relational database
+-   Docker Compose
+-   Maven
 -   Lombok
 -   Jakarta Validation
 
-### Planned
+## Transactional Outbox
 
--   Redis for caching
--   Apache Kafka for event-driven communication
--   Separate Ride microservice
--   Driver and ride management
+Booking creation uses the **Transactional Outbox Pattern**.
 
-These are planned features and are not claimed as completed
-functionality.
+``` text
+Create Booking
+      |
+      +----> Save Booking
+      |
+      +----> Save OutboxEvent (PENDING)
+                    |
+                    v
+             Scheduled Publisher
+                    |
+                    v
+                  Kafka
+                    |
+                    v
+              Event Consumer
+```
+
+The booking and its outbox event are created within the same database
+transaction. A scheduled publisher periodically finds pending events and
+publishes them to Kafka.
 
 ## Project Structure
 
@@ -237,10 +271,18 @@ authenticated identity comes from the JWT.
 
 ### Prerequisites
 
--   Java
+For local Maven execution:
+
+-   Java 21
 -   Maven
+-   PostgreSQL
+-   Redis
+-   Kafka
+
+For the containerized setup:
+
 -   Docker
--   A configured relational database
+-   Docker Compose
 
 Clone the repository:
 
@@ -263,6 +305,50 @@ mvn spring-boot:run
 
 Do not commit database passwords, JWT secrets, API keys, or other
 credentials.
+
+## Docker Compose
+
+StayRide is containerized with Docker Compose.
+
+The Compose environment includes:
+
+``` text
+stayride-app
+   |
+   +-- PostgreSQL
+   +-- Redis
+   +-- Kafka
+```
+
+The Spring Boot application connects to the Docker services using their
+Compose service names:
+
+``` text
+PostgreSQL → postgres:5432
+Redis      → redis:6379
+Kafka      → kafka:9092
+```
+
+Build and start the complete environment:
+
+``` bash
+docker compose up --build
+```
+
+Stop the environment:
+
+``` bash
+docker compose down
+```
+
+The application is exposed on:
+
+``` text
+http://localhost:9999
+```
+
+The Docker PostgreSQL database is separate from any PostgreSQL installation
+running directly on the host machine.
 
 ## Git Workflow
 
@@ -299,13 +385,18 @@ The `main` branch is kept as the stable project branch.
 -   [x] Hotel administration
 -   [x] Room management
 -   [x] Ownership-based authorization
+-   [x] Redis caching setup
+-   [x] Apache Kafka integration
+-   [x] Transactional Outbox Pattern
+-   [x] Scheduled outbox event publishing
+-   [x] Dockerized application
+-   [x] Docker Compose environment
+-   [x] PostgreSQL, Redis, and Kafka containers
 
 ### Planned
 
 -   [ ] Improve automated test coverage
 -   [ ] API documentation
--   [ ] Redis caching
--   [ ] Kafka event-driven booking workflow
 -   [ ] Extract Ride functionality into a separate microservice
 -   [ ] Driver and ride management
 -   [ ] Production configuration and observability

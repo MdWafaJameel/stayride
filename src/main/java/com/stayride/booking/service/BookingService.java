@@ -3,9 +3,12 @@ package com.stayride.booking.service;
 import com.stayride.booking.dto.BookingResponse;
 import com.stayride.booking.entity.Booking;
 import com.stayride.booking.entity.BookingStatus;
+import com.stayride.booking.event.BookingCreatedEvent;
 import com.stayride.booking.repository.BookingRepository;
 import com.stayride.common.exception.ResourceNotAvailableException;
 import com.stayride.common.exception.ResourceNotFoundException;
+import com.stayride.common.outbox.OutboxEvent;
+import com.stayride.common.outbox.OutboxEventRepository;
 import com.stayride.hotel.entity.Room;
 import com.stayride.hotel.repository.RoomRepository;
 import com.stayride.user.entity.User;
@@ -14,8 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -23,9 +28,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BookingService {
 
+    private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final BookingRepository bookingRepository;
+    private final OutboxEventRepository outboxEventRepository;
 
     @Transactional
     public BookingResponse bookRoom(Long userId, String roomType, LocalDate checkInDate, LocalDate checkOutDate) {
@@ -69,6 +76,33 @@ public class BookingService {
 
                 // 8. Save booking
                 Booking savedBooking = bookingRepository.save(booking);
+
+                BookingCreatedEvent event = new BookingCreatedEvent(
+                        savedBooking.getId(),
+                        savedBooking.getUser().getId(),
+                        savedBooking.getRoom().getId(),
+                        savedBooking.getCheckInDate(),
+                        savedBooking.getCheckOutDate(),
+                        savedBooking.getTotalAmount()
+                );
+
+                try {
+                    String payload = objectMapper.writeValueAsString(event);
+
+                    OutboxEvent outboxEvent = OutboxEvent.builder()
+                            .eventType("BOOKING_CREATED")
+                            .aggregateType("BOOKING")
+                            .aggregateId(savedBooking.getId())
+                            .payload(payload)
+                            .status("PENDING")
+                            .createdAt(LocalDateTime.now())
+                            .build();
+
+                    outboxEventRepository.save(outboxEvent);
+
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to create outbox event", e);
+                }
 
                 return new BookingResponse(
                         savedBooking.getId(),
