@@ -1,0 +1,19 @@
+services:
+
+  ride-postgres:
+    image: postgres:17
+    container_name: ride-postgres
+
+    environment:
+      POSTGRES_DB: ride
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+
+    ports:
+      - "5434:5432"
+
+    volumes:
+      - ride-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  ride-postgres-data:

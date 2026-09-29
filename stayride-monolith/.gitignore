@@ -1,4 +1,4 @@
-# IntelliJ IDEA
+# IntelliJ
 .idea/
 *.iml
 *.iws
@@ -7,10 +7,6 @@
 # Maven
 target/
 .mvn/wrapper/maven-wrapper.jar
-
-# Gradle
-.gradle/
-build/
 
 # Logs
 *.log
@@ -25,11 +21,5 @@ Thumbs.db
 application-local.properties
 application-local.yml
 
-# Java
-*.class
-
-# Temporary files
+# Temporary
 *.tmp
-
-# IDE / editor
-.vscode/

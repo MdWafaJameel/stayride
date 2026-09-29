@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: stayride-api-gateway
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+
+            - id: stayride-monolith
+              uri: lb://STAYRIDE-MONOLITH
+              predicates:
+                - Path=/api/auth/**,/api/users/**,/api/hotels/**,/api/bookings/**
+
+            - id: ride-service
+              uri: lb://STAYRIDE-RIDE-SERVICE
+              predicates:
+                - Path=/api/rides/**,/api/drivers/**
+
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 2
+                    redis-rate-limiter.burstCapacity: 2
+                    key-resolver: "#{@ipKeyResolver}"
+
+server:
+  port: 8080
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
